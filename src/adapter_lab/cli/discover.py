@@ -15,9 +15,7 @@ def discover_cmd(
 ) -> None:
     """Discover candidates for a registered source."""
 
-    candidates = Pipeline().run_discover(source)
-    if limit is not None:
-        candidates = candidates[:limit]
+    candidates = Pipeline().run_discover(source, limit)
     table = Table(title=f"Discovered candidates for {source}")
     table.add_column("ID")
     table.add_column("URL", overflow="fold")

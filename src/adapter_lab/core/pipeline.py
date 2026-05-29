@@ -91,10 +91,10 @@ class Pipeline:
         builder.save(profile)
         return profile
 
-    def run_discover(self, source_id: str) -> list[RawCandidate]:
+    def run_discover(self, source_id: str, limit: int | None = None) -> list[RawCandidate]:
         """Run discovery for a registered source adapter."""
 
-        run = self._run_source(source_id)
+        run = self._run_source(source_id, limit)
         candidates = run.candidates
         path = self.storage.path_for_source(source_id, self.settings.raw_dir) / "candidates.ndjson"
         self.storage.save_ndjson(path, candidates)
