@@ -15,6 +15,7 @@ from adapter_lab.core.settings import Settings, get_settings
 from adapter_lab.core.storage import Storage
 from adapter_lab.source_analysis.analyzer import SourceAnalyzer
 from adapter_lab.source_analysis.profile_builder import ProfileBuilder
+
 from adapter_lab.validation.checks import (
     CheckResult,
     check_candidate_count,
@@ -92,12 +93,27 @@ class Pipeline:
         return profile
 
     def run_discover(self, source_id: str, limit: int | None = None) -> list[RawCandidate]:
-        """Run discovery for a registered source adapter."""
+        """Run discovery for a registered source adapter.
 
+        Also seeds a source profile from the adapter's SourceDefinition when no
+        profile file exists yet, so that ``data/profiles/{source_id}.json`` is
+        always present after the first discover run.
+        """
+
+        adapter = self._get_adapter(source_id)
         run = self._run_source(source_id, limit)
         candidates = run.candidates
-        path = self.storage.path_for_source(source_id, self.settings.raw_dir) / "candidates.ndjson"
-        self.storage.save_ndjson(path, candidates)
+        ndjson_path = (
+            self.storage.path_for_source(source_id, self.settings.raw_dir) / "candidates.ndjson"
+        )
+        self.storage.save_ndjson(ndjson_path, candidates)
+
+        profile_path = self.settings.profiles_dir / f"{source_id}.json"
+        if not profile_path.exists():
+            builder = ProfileBuilder(self.settings, self.storage)
+            profile = builder.seed_from_definition(adapter.source_def)
+            builder.save(profile)
+
         return candidates
 
     def run_fetch(self, source_id: str, limit: int | None = None) -> list[FetchRecord]:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from adapter_lab.core.models import SourceProfile
+from adapter_lab.core.models import SourceDefinition, SourceProfile
 from adapter_lab.core.settings import Settings, get_settings
 from adapter_lab.core.storage import Storage
 from adapter_lab.core.types import SourceType
@@ -17,6 +17,27 @@ class ProfileBuilder:
         self.settings = settings or get_settings()
         self.storage = storage or Storage(self.settings)
         self.html_extractor = HtmlExtractor()
+
+    def seed_from_definition(self, source_def: SourceDefinition) -> SourceProfile:
+        """Create a baseline source profile directly from a SourceDefinition.
+
+        The resulting profile captures the statically known metadata from the
+        adapter without performing any live HTTP requests.  It is intended as a
+        lightweight placeholder that can later be enriched by running
+        ``adapter-lab analyze <url>``.
+        """
+        notes = [
+            "Profile seeded from SourceDefinition; "
+            "run `adapter-lab analyze` to populate live evidence."
+        ]
+        return SourceProfile(
+            source_id=source_def.id,
+            analyzed_url=source_def.start_urls[0],
+            inferred_type=source_def.source_type,
+            title=source_def.name,
+            description=source_def.notes or None,
+            notes=notes,
+        )
 
     def build(
         self,

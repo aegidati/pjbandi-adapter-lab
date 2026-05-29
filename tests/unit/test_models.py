@@ -113,3 +113,27 @@ def test_validation_report_creation() -> None:
     assert report.pdf_presence_ratio == 1.0
     assert report.missing_title_ratio == 0.0
     assert report.extraction_completeness_score == 0.75
+
+
+def test_profile_builder_seed_from_definition() -> None:
+    from adapter_lab.core.types import SourceType
+    from adapter_lab.source_analysis.profile_builder import ProfileBuilder
+
+    source_def = SourceDefinition(
+        id="test_source",
+        name="Test Source",
+        base_url="https://test.example.com",
+        source_type=SourceType.CATALOG_HTML,
+        start_urls=["https://test.example.com/listing"],
+        notes="Test notes",
+    )
+    builder = ProfileBuilder()
+    profile = builder.seed_from_definition(source_def)
+
+    assert profile.source_id == "test_source"
+    assert profile.analyzed_url == "https://test.example.com/listing"
+    assert profile.inferred_type == SourceType.CATALOG_HTML
+    assert profile.title == "Test Source"
+    assert profile.description == "Test notes"
+    assert len(profile.notes) == 1
+    assert "adapter-lab analyze" in profile.notes[0]
