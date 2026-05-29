@@ -20,7 +20,10 @@ class ReportWriter:
         """Write a full validation report as JSON."""
 
         timestamp = datetime.now(UTC).strftime("%Y%m%d%H%M%S")
-        path = self.storage.path_for_source(report.source_id, self.settings.reports_dir) / f"validation-{timestamp}.json"
+        path = (
+            self.storage.path_for_source(report.source_id, self.settings.reports_dir)
+            / f"validation-{timestamp}.json"
+        )
         self.storage.save_json(path, report)
         return path
 
@@ -28,7 +31,10 @@ class ReportWriter:
         """Write a simple summary report for arbitrary results."""
 
         timestamp = datetime.now(UTC).strftime("%Y%m%d%H%M%S")
-        path = self.storage.path_for_source(source_id, self.settings.reports_dir) / f"summary-{timestamp}.json"
+        path = (
+            self.storage.path_for_source(source_id, self.settings.reports_dir)
+            / f"summary-{timestamp}.json"
+        )
         self.storage.save_json(
             path,
             {"source_id": source_id, "results": results, "generated_at": datetime.now(UTC)},

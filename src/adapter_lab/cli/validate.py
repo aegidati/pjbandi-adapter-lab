@@ -19,6 +19,11 @@ def validate_cmd(source: str = typer.Argument(..., help="Source ID")) -> None:
     table.add_column("Score")
     table.add_column("Message", overflow="fold")
     for check in report.checks:
-        table.add_row(check["name"], "yes" if check["passed"] else "no", f"{check['score']:.2f}", check["message"])
+        table.add_row(
+            check["name"],
+            "yes" if check["passed"] else "no",
+            f"{check['score']:.2f}",
+            check["message"],
+        )
     console.print(table)
     console.print(f"[bold]Passed:[/bold] {report.passed}")

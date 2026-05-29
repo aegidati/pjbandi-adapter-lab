@@ -20,7 +20,11 @@ class ApiBackedAdapter(BaseAdapter):
         items = payload if isinstance(payload, list) else payload.get("items", [])
         candidates: list[RawCandidate] = []
         for item in items[:50]:
-            url = item.get("url") or item.get("link") or normalize_url(str(item.get("id", "")), str(self.source_def.base_url))
+            url = (
+                item.get("url")
+                or item.get("link")
+                or normalize_url(str(item.get("id", "")), str(self.source_def.base_url))
+            )
             candidates.append(
                 RawCandidate(
                     id=short_id(url),

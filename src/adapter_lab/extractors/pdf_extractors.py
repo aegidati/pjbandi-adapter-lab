@@ -15,8 +15,8 @@ class PdfExtractor:
         """Extract text from PDF bytes."""
 
         reader = PdfReader(BytesIO(pdf_bytes))
-        texts = [page.extract_text() or '' for page in reader.pages]
-        return clean_whitespace(' '.join(texts))
+        texts = [page.extract_text() or "" for page in reader.pages]
+        return clean_whitespace(" ".join(texts))
 
     def extract_text_from_file(self, path: str | Path) -> str:
         """Extract text from a PDF file path."""

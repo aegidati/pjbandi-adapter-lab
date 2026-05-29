@@ -10,16 +10,16 @@ class HtmlExtractor:
     """HTML extraction helpers built on BeautifulSoup and lxml."""
 
     def _soup(self, html: str) -> BeautifulSoup:
-        return BeautifulSoup(html, 'lxml')
+        return BeautifulSoup(html, "lxml")
 
     def extract_title(self, html: str) -> str | None:
         """Extract a likely page title from HTML."""
 
         soup = self._soup(html)
-        for selector in ('h1', 'title', 'h2'):
+        for selector in ("h1", "title", "h2"):
             node = soup.select_one(selector)
             if node:
-                text = clean_whitespace(node.get_text(' ', strip=True))
+                text = clean_whitespace(node.get_text(" ", strip=True))
                 if text:
                     return text
         return None
@@ -30,8 +30,8 @@ class HtmlExtractor:
         soup = self._soup(html)
         links: list[str] = []
         seen: set[str] = set()
-        for anchor in soup.select('a[href]'):
-            href = anchor.get('href')
+        for anchor in soup.select("a[href]"):
+            href = anchor.get("href")
             if not href:
                 continue
             normalized = normalize_url(href, base_url)
@@ -44,13 +44,13 @@ class HtmlExtractor:
         """Extract normalized visible text from HTML."""
 
         soup = self._soup(html)
-        return clean_whitespace(soup.get_text(' ', strip=True))
+        return clean_whitespace(soup.get_text(" ", strip=True))
 
     def extract_meta_description(self, html: str) -> str | None:
         """Extract the meta description content when present."""
 
         soup = self._soup(html)
         meta = soup.select_one('meta[name="description"]')
-        if meta and meta.get('content'):
-            return clean_whitespace(meta['content'])
+        if meta and meta.get("content"):
+            return clean_whitespace(meta["content"])
         return None

@@ -48,7 +48,9 @@ def check_fetch_coverage(candidates: list[RawCandidate], fetched: list[FetchReco
 
 def check_pdf_presence(assets: list[EvidenceAsset]) -> CheckResult:
     total = len(assets)
-    ratio = sum(1 for asset in assets if asset.asset_type == AssetType.PDF) / total if total else 0.0
+    ratio = (
+        sum(1 for asset in assets if asset.asset_type == AssetType.PDF) / total if total else 0.0
+    )
     return CheckResult(
         name="pdf_presence",
         passed=ratio >= 0.2 if total else False,
@@ -81,7 +83,11 @@ def check_deadline_completeness(extractions: list[ExtractionResult]) -> CheckRes
 
 def check_extraction_completeness(extractions: list[ExtractionResult]) -> CheckResult:
     total = len(extractions)
-    ratio = sum(1 for item in extractions if item.status == ExtractionStatus.SUCCESS) / total if total else 0.0
+    ratio = (
+        sum(1 for item in extractions if item.status == ExtractionStatus.SUCCESS) / total
+        if total
+        else 0.0
+    )
     return CheckResult(
         name="extraction_completeness",
         passed=ratio >= 0.5 if total else False,

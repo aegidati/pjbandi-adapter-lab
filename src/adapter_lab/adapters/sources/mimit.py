@@ -34,7 +34,9 @@ class MimitAdapter(RegionalHtmlPdfAdapter):
         candidates: list[RawCandidate] = []
         for anchor in soup.select("a[href]"):
             href = normalize_url(anchor.get("href", ""), listing_url)
-            if any(token in href.lower() for token in ("bando", "incentivi", "agevolazioni", "decreto")):
+            if any(
+                token in href.lower() for token in ("bando", "incentivi", "agevolazioni", "decreto")
+            ):
                 candidates.append(
                     RawCandidate(
                         id=short_id(href),

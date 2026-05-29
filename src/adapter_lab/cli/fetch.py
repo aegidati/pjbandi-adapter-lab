@@ -22,6 +22,8 @@ def fetch_cmd(
     table.add_column("Content Type")
     table.add_column("Path", overflow="fold")
     for record in records:
-        table.add_row(record.id, str(record.status_code), record.content_type or "-", record.local_path)
+        table.add_row(
+            record.id, str(record.status_code), record.content_type or "-", record.local_path
+        )
     console.print(table)
     console.print(f"[green]Fetched records:[/green] {len(records)}")

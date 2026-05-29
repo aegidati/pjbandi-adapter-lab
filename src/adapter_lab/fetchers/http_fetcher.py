@@ -25,23 +25,25 @@ class HttpFetcher:
     def get_headers(self) -> dict[str, str]:
         """Return default request headers."""
 
-        return {'User-Agent': self.settings.user_agent}
+        return {"User-Agent": self.settings.user_agent}
 
     def _extension_for(self, url: str, content_type: str | None) -> str:
         parsed = urlparse(url)
         suffix = Path(parsed.path).suffix
         if suffix:
             return suffix
-        lowered = (content_type or '').lower()
-        if 'html' in lowered:
-            return '.html'
-        if 'pdf' in lowered:
-            return '.pdf'
-        if 'json' in lowered:
-            return '.json'
-        return '.bin'
+        lowered = (content_type or "").lower()
+        if "html" in lowered:
+            return ".html"
+        if "pdf" in lowered:
+            return ".pdf"
+        if "json" in lowered:
+            return ".json"
+        return ".bin"
 
-    def fetch(self, url: str, source_id: str = 'generic', candidate_id: str | None = None) -> tuple[FetchRecord, bytes]:
+    def fetch(
+        self, url: str, source_id: str = "generic", candidate_id: str | None = None
+    ) -> tuple[FetchRecord, bytes]:
         """Fetch a URL, persist the response body, and return fetch metadata plus bytes."""
 
         timeout = httpx.Timeout(self.settings.http_timeout)
@@ -59,21 +61,31 @@ class HttpFetcher:
                     break
                 except httpx.HTTPError as exc:
                     last_error = exc
-                    LOGGER.warning('Fetch attempt %s/%s failed for %s: %s', attempt, self.settings.http_max_retries, url, exc)
+                    LOGGER.warning(
+                        "Fetch attempt %s/%s failed for %s: %s",
+                        attempt,
+                        self.settings.http_max_retries,
+                        url,
+                        exc,
+                    )
                     if attempt == self.settings.http_max_retries:
                         raise
             else:
-                raise RuntimeError(f'Unable to fetch {url}: {last_error}')
+                raise RuntimeError(f"Unable to fetch {url}: {last_error}")
 
         body = response.content
         body_hash = hash_content(body)
-        record_id = short_id(f'{url}:{body_hash}:{datetime.now(UTC).isoformat()}')
-        local_path = self.storage.path_for_asset(source_id, record_id, self._extension_for(str(response.url), response.headers.get('content-type')))
+        record_id = short_id(f"{url}:{body_hash}:{datetime.now(UTC).isoformat()}")
+        local_path = self.storage.path_for_asset(
+            source_id,
+            record_id,
+            self._extension_for(str(response.url), response.headers.get("content-type")),
+        )
         self.storage.save_bytes(local_path, body)
         headers_summary = {
             key: value
             for key, value in response.headers.items()
-            if key.lower() in {'content-type', 'content-length', 'last-modified', 'etag'}
+            if key.lower() in {"content-type", "content-length", "last-modified", "etag"}
         }
         record = FetchRecord(
             id=record_id,
@@ -83,7 +95,7 @@ class HttpFetcher:
             final_url=str(response.url),
             fetched_at=datetime.now(UTC),
             status_code=response.status_code,
-            content_type=response.headers.get('content-type'),
+            content_type=response.headers.get("content-type"),
             headers_summary=headers_summary,
             body_hash=body_hash,
             local_path=str(local_path),

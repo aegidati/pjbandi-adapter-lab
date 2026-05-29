@@ -38,7 +38,9 @@ class IncentiviGovAdapter(CatalogHtmlAdapter):
             label = anchor.get_text(" ", strip=True)
             if not href or href in seen:
                 continue
-            if "/it/" in href and any(token in href.lower() for token in ("incentivo", "bando", "misura", "agevolazione")):
+            if "/it/" in href and any(
+                token in href.lower() for token in ("incentivo", "bando", "misura", "agevolazione")
+            ):
                 seen.add(href)
                 candidates.append(
                     RawCandidate(

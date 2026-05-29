@@ -21,9 +21,13 @@ class CatalogHtmlAdapter(BaseAdapter):
         filtered = [
             link
             for link in links
-            if not is_pdf_url(link) and not is_doc_url(link) and any(key in link.lower() for key in keywords)
+            if not is_pdf_url(link)
+            and not is_doc_url(link)
+            and any(key in link.lower() for key in keywords)
         ]
-        candidate_links = filtered or [link for link in links if not is_pdf_url(link) and not is_doc_url(link)]
+        candidate_links = filtered or [
+            link for link in links if not is_pdf_url(link) and not is_doc_url(link)
+        ]
         return [
             RawCandidate(
                 id=short_id(url),
@@ -45,7 +49,9 @@ class CatalogHtmlAdapter(BaseAdapter):
         assets = [main_asset]
         if main_asset.asset_type.value == "html":
             html = body.decode("utf-8", errors="ignore")
-            assets.extend(self._download_linked_assets(html, candidate.url, parent_asset_id=main_asset.id))
+            assets.extend(
+                self._download_linked_assets(html, candidate.url, parent_asset_id=main_asset.id)
+            )
         record.asset_ids = [asset.id for asset in assets]
         return record, assets
 

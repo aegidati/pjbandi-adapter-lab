@@ -32,9 +32,14 @@ def test_regex_extract_euro_amounts() -> None:
 
 def test_content_detector_pdf() -> None:
     detector = ContentDetector()
-    assert detector.detect_type("application/pdf", "https://example.com/file.pdf", b"%PDF-1.7") == AssetType.PDF
+    assert (
+        detector.detect_type("application/pdf", "https://example.com/file.pdf", b"%PDF-1.7")
+        == AssetType.PDF
+    )
 
 
 def test_content_detector_html() -> None:
     detector = ContentDetector()
-    assert detector.detect_type("text/html", "https://example.com", b"<html></html>") == AssetType.HTML
+    assert (
+        detector.detect_type("text/html", "https://example.com", b"<html></html>") == AssetType.HTML
+    )
