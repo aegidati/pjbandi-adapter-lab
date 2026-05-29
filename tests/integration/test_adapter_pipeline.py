@@ -23,7 +23,9 @@ class FixtureCatalogAdapter(CatalogHtmlAdapter):
 
 def test_catalog_html_adapter_discover_from_fixture(monkeypatch) -> None:
     fixture_html = Path("tests/fixtures/sample_listing.html").read_bytes()
-    detail_html = b"<html><body><h1>Bando transizione digitale</h1><p>Scadenza 15/01/2025</p></body></html>"
+    detail_html = (
+        b"<html><body><h1>Bando transizione digitale</h1><p>Scadenza 15/01/2025</p></body></html>"
+    )
 
     def fake_fetch(self, url: str, source_id: str = "generic", candidate_id: str | None = None):
         body = fixture_html if url.endswith("/listing") else detail_html
@@ -48,4 +50,6 @@ def test_catalog_html_adapter_discover_from_fixture(monkeypatch) -> None:
     adapter = FixtureCatalogAdapter()
     candidates = adapter.discover()
     assert len(candidates) >= 3
-    assert all(candidate.url.startswith("https://fixtures.example.com/") for candidate in candidates)
+    assert all(
+        candidate.url.startswith("https://fixtures.example.com/") for candidate in candidates
+    )

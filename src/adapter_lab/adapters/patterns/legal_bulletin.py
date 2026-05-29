@@ -14,7 +14,10 @@ class LegalBulletinAdapter(RegionalHtmlPdfAdapter):
         bulletin_candidates = [
             candidate
             for candidate in candidates
-            if any(token in candidate.url.lower() for token in ("bur", "bollettino", "gazzetta", "bando"))
+            if any(
+                token in candidate.url.lower()
+                for token in ("bur", "bollettino", "gazzetta", "bando")
+            )
         ]
         return bulletin_candidates or candidates
 

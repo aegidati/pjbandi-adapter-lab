@@ -4,7 +4,13 @@ from abc import ABC, abstractmethod
 from datetime import UTC, datetime
 from pathlib import Path
 
-from adapter_lab.core.models import EvidenceAsset, ExtractionResult, FetchRecord, RawCandidate, SourceDefinition
+from adapter_lab.core.models import (
+    EvidenceAsset,
+    ExtractionResult,
+    FetchRecord,
+    RawCandidate,
+    SourceDefinition,
+)
 from adapter_lab.core.settings import Settings, get_settings
 from adapter_lab.core.storage import Storage
 from adapter_lab.core.types import AssetType, ExtractionStatus
@@ -137,5 +143,7 @@ class BaseAdapter(ABC):
         if asset.asset_type == AssetType.PDF:
             return self.pdf_extractor.extract_text_from_file(path)
         if asset.asset_type == AssetType.HTML:
-            return self.html_extractor.extract_text(path.read_text(encoding="utf-8", errors="ignore"))
+            return self.html_extractor.extract_text(
+                path.read_text(encoding="utf-8", errors="ignore")
+            )
         return path.read_text(encoding="utf-8", errors="ignore")

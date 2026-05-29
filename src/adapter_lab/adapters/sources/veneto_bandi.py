@@ -55,5 +55,7 @@ class VenetoBandiAdapter(RegionalHtmlPdfAdapter):
         if html_asset:
             html = Path(html_asset.local_path).read_text(encoding="utf-8", errors="ignore")
             if "veneto" in html.lower():
-                result.extraction_notes.append("Detected Veneto-specific branding in HTML evidence.")
+                result.extraction_notes.append(
+                    "Detected Veneto-specific branding in HTML evidence."
+                )
         return result

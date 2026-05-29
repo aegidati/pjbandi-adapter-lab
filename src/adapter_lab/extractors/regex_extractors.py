@@ -6,24 +6,27 @@ from adapter_lab.utils.text_cleaning import clean_whitespace, normalize_italian_
 from adapter_lab.utils.urls import normalize_url
 
 TITLE_PATTERNS = [
-    re.compile(r'(?:bando|avviso|misura)[:\s]+(.+)', re.IGNORECASE),
+    re.compile(r"(?:bando|avviso|misura)[:\s]+(.+)", re.IGNORECASE),
 ]
 DATE_PATTERNS = [
-    re.compile(r'(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})'),
+    re.compile(r"(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})"),
     re.compile(
-        r'(\d{1,2}\s+(?:gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)\s+\d{4})',
+        r"(\d{1,2}\s+(?:gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)\s+\d{4})",
         re.IGNORECASE,
     ),
 ]
 DEADLINE_PATTERNS = [
-    re.compile(r'(?:scadenza|termine(?:\s+per\s+la\s+presentazione)?)[^\d]*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})', re.IGNORECASE),
     re.compile(
-        r'(?:scadenza|termine(?:\s+per\s+la\s+presentazione)?)[^\d]*(\d{1,2}\s+(?:gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)\s+\d{4})',
+        r"(?:scadenza|termine(?:\s+per\s+la\s+presentazione)?)[^\d]*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"(?:scadenza|termine(?:\s+per\s+la\s+presentazione)?)[^\d]*(\d{1,2}\s+(?:gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)\s+\d{4})",
         re.IGNORECASE,
     ),
 ]
-URL_PATTERN = re.compile(r'https?://[^\s)>,]+', re.IGNORECASE)
-EURO_PATTERN = re.compile(r'€\s?[\d\.,]+|[\d\.,]+\s?euro', re.IGNORECASE)
+URL_PATTERN = re.compile(r"https?://[^\s)>,]+", re.IGNORECASE)
+EURO_PATTERN = re.compile(r"€\s?[\d\.,]+|[\d\.,]+\s?euro", re.IGNORECASE)
 
 
 class DeterministicExtractor:
@@ -37,7 +40,7 @@ class DeterministicExtractor:
             match = pattern.search(cleaned)
             if match:
                 return clean_whitespace(match.group(1))
-        first_sentence = cleaned.split('.')
+        first_sentence = cleaned.split(".")
         return first_sentence[0][:200] if cleaned else None
 
     def extract_publication_date(self, text: str) -> str | None:

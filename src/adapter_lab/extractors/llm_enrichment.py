@@ -22,7 +22,7 @@ class PlaceholderEnricher(LlmEnricher):
     def enrich(self, text: str, fields_hint: dict[str, Any] | None = None) -> dict[str, Any]:
         """Return an empty enrichment payload and log a warning."""
 
-        LOGGER.warning('No LLM is configured; returning empty semantic enrichment payload.')
+        LOGGER.warning("No LLM is configured; returning empty semantic enrichment payload.")
         return {}
 
 

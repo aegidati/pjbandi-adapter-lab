@@ -24,10 +24,10 @@ class SourceAnalyzer:
         links = self._extract_candidate_links(html, url)
         pagination = self._detect_pagination(html, url)
         attachments = self._detect_attachments(html)
-        source_id = extract_domain(url).replace('.', '_').replace('-', '_') or 'unknown_source'
+        source_id = extract_domain(url).replace(".", "_").replace("-", "_") or "unknown_source"
         notes = [
-            f'Detected {len(links)} candidate links',
-            f'Detected {len(attachments)} attachment links',
+            f"Detected {len(links)} candidate links",
+            f"Detected {len(attachments)} attachment links",
         ]
         return SourceProfile(
             source_id=source_id,
@@ -48,7 +48,7 @@ class SourceAnalyzer:
         with httpx.Client(
             follow_redirects=True,
             timeout=self.settings.http_timeout,
-            headers={'User-Agent': self.settings.user_agent},
+            headers={"User-Agent": self.settings.user_agent},
         ) as client:
             response = client.get(url)
             response.raise_for_status()
@@ -58,15 +58,15 @@ class SourceAnalyzer:
         """Infer the likely source type from the page shape."""
 
         lower_html = html.lower()
-        if 'application/json' in lower_html or 'api/' in url:
+        if "application/json" in lower_html or "api/" in url:
             return SourceType.API_BACKED
-        if '.pdf' in lower_html and ('bando' in lower_html or 'allegato' in lower_html):
+        if ".pdf" in lower_html and ("bando" in lower_html or "allegato" in lower_html):
             return SourceType.REGIONAL_HTML_PDF
         if is_pdf_url(url):
             return SourceType.PDF_FIRST
-        if 'gazzetta' in lower_html or 'bollettino' in lower_html or 'bur' in lower_html:
+        if "gazzetta" in lower_html or "bollettino" in lower_html or "bur" in lower_html:
             return SourceType.LEGAL_BULLETIN
-        if '<a ' in lower_html:
+        if "<a " in lower_html:
             return SourceType.CATALOG_HTML
         return SourceType.UNKNOWN
 
@@ -74,10 +74,8 @@ class SourceAnalyzer:
         """Extract likely candidate detail links from a page."""
 
         links = self.html_extractor.extract_links(html, base_url)
-        keywords = ('bando', 'avviso', 'scheda', 'opportun', 'contribut', 'incentiv')
-        filtered = [
-            link for link in links if any(keyword in link.lower() for keyword in keywords)
-        ]
+        keywords = ("bando", "avviso", "scheda", "opportun", "contribut", "incentiv")
+        filtered = [link for link in links if any(keyword in link.lower() for keyword in keywords)]
         return filtered or links[:25]
 
     def _detect_pagination(self, html: str, base_url: str) -> str | None:
@@ -85,11 +83,11 @@ class SourceAnalyzer:
 
         links = self.html_extractor.extract_links(html, base_url)
         for link in links:
-            if 'page=' in link.lower() or '/page/' in link.lower():
+            if "page=" in link.lower() or "/page/" in link.lower():
                 return truncate(link, 200)
         lower_html = html.lower()
-        if 'pagina successiva' in lower_html or 'next' in lower_html:
-            return 'next-link-detected'
+        if "pagina successiva" in lower_html or "next" in lower_html:
+            return "next-link-detected"
         return None
 
     def _detect_attachments(self, html: str) -> list[str]:
@@ -98,7 +96,7 @@ class SourceAnalyzer:
         attachments = []
         for token in html.split('"'):
             candidate = token.strip()
-            if candidate.lower().endswith(('.pdf', '.doc', '.docx', '.zip')):
+            if candidate.lower().endswith((".pdf", ".doc", ".docx", ".zip")):
                 attachments.append(candidate)
         seen: set[str] = set()
         ordered: list[str] = []

@@ -1,6 +1,15 @@
 from __future__ import annotations
 
-from adapter_lab.core.models import EvidenceAsset, ExtractionResult, FetchRecord, RawCandidate, SourceProfile, ValidationReport
+from dataclasses import dataclass
+
+from adapter_lab.core.models import (
+    EvidenceAsset,
+    ExtractionResult,
+    FetchRecord,
+    RawCandidate,
+    SourceProfile,
+    ValidationReport,
+)
 from adapter_lab.core.registry import REGISTRY
 from adapter_lab.core.settings import Settings, get_settings
 from adapter_lab.core.storage import Storage
@@ -18,6 +27,14 @@ from adapter_lab.validation.checks import (
 from adapter_lab.validation.reports import ReportWriter
 
 
+@dataclass
+class SourceRunData:
+    candidates: list[RawCandidate]
+    fetch_records: list[FetchRecord]
+    assets: list[EvidenceAsset]
+    extractions: list[ExtractionResult]
+
+
 class Pipeline:
     """High-level orchestration for adapter lab workflows."""
 
@@ -29,6 +46,36 @@ class Pipeline:
     def _get_adapter(self, source_id: str):
         adapter_class = REGISTRY.get(source_id)
         return adapter_class(settings=self.settings, storage=self.storage)
+
+    def _run_source(
+        self,
+        source_id: str,
+        limit: int | None = None,
+        *,
+        fetch: bool = False,
+        extract: bool = False,
+    ) -> SourceRunData:
+        adapter = self._get_adapter(source_id)
+        candidates = adapter.discover()
+        if limit is not None:
+            candidates = candidates[:limit]
+
+        fetch_records: list[FetchRecord] = []
+        assets: list[EvidenceAsset] = []
+        extractions: list[ExtractionResult] = []
+        if not fetch and not extract:
+            return SourceRunData(candidates, fetch_records, assets, extractions)
+
+        for candidate in candidates:
+            record, candidate_assets = adapter.fetch(candidate)
+            fetch_records.append(record)
+            assets.extend(candidate_assets)
+            if extract:
+                result = adapter.extract(candidate_assets)
+                result.candidate_id = candidate.id
+                extractions.append(result)
+
+        return SourceRunData(candidates, fetch_records, assets, extractions)
 
     def run_analyze(self, url: str) -> SourceProfile:
         """Analyze a URL and persist its source profile."""
@@ -47,8 +94,8 @@ class Pipeline:
     def run_discover(self, source_id: str) -> list[RawCandidate]:
         """Run discovery for a registered source adapter."""
 
-        adapter = self._get_adapter(source_id)
-        candidates = adapter.discover()
+        run = self._run_source(source_id)
+        candidates = run.candidates
         path = self.storage.path_for_source(source_id, self.settings.raw_dir) / "candidates.ndjson"
         self.storage.save_ndjson(path, candidates)
         return candidates
@@ -56,16 +103,10 @@ class Pipeline:
     def run_fetch(self, source_id: str, limit: int | None = None) -> list[FetchRecord]:
         """Run fetch for discovered candidates and persist fetch metadata."""
 
-        adapter = self._get_adapter(source_id)
-        candidates = adapter.discover()
-        if limit is not None:
-            candidates = candidates[:limit]
-        fetch_records: list[FetchRecord] = []
-        assets: list[EvidenceAsset] = []
-        for candidate in candidates:
-            record, candidate_assets = adapter.fetch(candidate)
-            fetch_records.append(record)
-            assets.extend(candidate_assets)
+        run = self._run_source(source_id, limit, fetch=True)
+        candidates = run.candidates
+        fetch_records = run.fetch_records
+        assets = run.assets
         raw_dir = self.storage.path_for_source(source_id, self.settings.raw_dir)
         self.storage.save_ndjson(raw_dir / "candidates.ndjson", candidates)
         self.storage.save_ndjson(raw_dir / "fetch_records.ndjson", fetch_records)
@@ -75,20 +116,11 @@ class Pipeline:
     def run_extract(self, source_id: str, limit: int | None = None) -> list[ExtractionResult]:
         """Run extraction for discovered candidates and persist results."""
 
-        adapter = self._get_adapter(source_id)
-        candidates = adapter.discover()
-        if limit is not None:
-            candidates = candidates[:limit]
-        results: list[ExtractionResult] = []
-        fetch_records: list[FetchRecord] = []
-        assets: list[EvidenceAsset] = []
-        for candidate in candidates:
-            record, candidate_assets = adapter.fetch(candidate)
-            result = adapter.extract(candidate_assets)
-            result.candidate_id = candidate.id
-            fetch_records.append(record)
-            assets.extend(candidate_assets)
-            results.append(result)
+        run = self._run_source(source_id, limit, fetch=True, extract=True)
+        candidates = run.candidates
+        fetch_records = run.fetch_records
+        assets = run.assets
+        results = run.extractions
         raw_dir = self.storage.path_for_source(source_id, self.settings.raw_dir)
         extracted_dir = self.storage.path_for_source(source_id, self.settings.extracted_dir)
         self.storage.save_ndjson(raw_dir / "candidates.ndjson", candidates)
@@ -100,18 +132,11 @@ class Pipeline:
     def run_validate(self, source_id: str) -> ValidationReport:
         """Run end-to-end validation for a source adapter and persist the report."""
 
-        adapter = self._get_adapter(source_id)
-        candidates = adapter.discover()
-        fetch_records: list[FetchRecord] = []
-        assets: list[EvidenceAsset] = []
-        extractions: list[ExtractionResult] = []
-        for candidate in candidates:
-            record, candidate_assets = adapter.fetch(candidate)
-            result = adapter.extract(candidate_assets)
-            result.candidate_id = candidate.id
-            fetch_records.append(record)
-            assets.extend(candidate_assets)
-            extractions.append(result)
+        run = self._run_source(source_id, fetch=True, extract=True)
+        candidates = run.candidates
+        fetch_records = run.fetch_records
+        assets = run.assets
+        extractions = run.extractions
         checks: list[CheckResult] = [
             check_candidate_count(candidates),
             check_fetch_coverage(candidates, fetch_records),
@@ -122,7 +147,9 @@ class Pipeline:
         ]
         title_check = next(check for check in checks if check.name == "title_completeness")
         deadline_check = next(check for check in checks if check.name == "deadline_completeness")
-        extraction_check = next(check for check in checks if check.name == "extraction_completeness")
+        extraction_check = next(
+            check for check in checks if check.name == "extraction_completeness"
+        )
         pdf_check = next(check for check in checks if check.name == "pdf_presence")
         report = ValidationReport(
             source_id=source_id,

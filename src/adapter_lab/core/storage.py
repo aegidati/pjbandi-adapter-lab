@@ -20,8 +20,8 @@ class Storage:
         return path
 
     def _to_serializable(self, data: Any) -> Any:
-        if hasattr(data, 'model_dump'):
-            return data.model_dump(mode='json')
+        if hasattr(data, "model_dump"):
+            return data.model_dump(mode="json")
         if isinstance(data, Path):
             return str(data)
         if isinstance(data, list):
@@ -36,31 +36,29 @@ class Storage:
         self.ensure_dir(path.parent)
         path.write_text(
             json.dumps(self._to_serializable(data), ensure_ascii=False, indent=2),
-            encoding='utf-8',
+            encoding="utf-8",
         )
         return path
 
     def load_json(self, path: Path) -> Any:
         """Load a JSON document from disk."""
 
-        return json.loads(path.read_text(encoding='utf-8'))
+        return json.loads(path.read_text(encoding="utf-8"))
 
     def save_ndjson(self, path: Path, records: Iterable[Any]) -> Path:
         """Save an iterable of records to newline-delimited JSON."""
 
         self.ensure_dir(path.parent)
-        with path.open('w', encoding='utf-8') as handle:
+        with path.open("w", encoding="utf-8") as handle:
             for record in records:
-                handle.write(
-                    json.dumps(self._to_serializable(record), ensure_ascii=False) + '\n'
-                )
+                handle.write(json.dumps(self._to_serializable(record), ensure_ascii=False) + "\n")
         return path
 
     def load_ndjson(self, path: Path) -> list[Any]:
         """Load newline-delimited JSON from disk."""
 
         records: list[Any] = []
-        with path.open('r', encoding='utf-8') as handle:
+        with path.open("r", encoding="utf-8") as handle:
             for line in handle:
                 line = line.strip()
                 if line:
@@ -88,5 +86,5 @@ class Storage:
     def path_for_asset(self, source_id: str, asset_id: str, ext: str) -> Path:
         """Return a stable path for a binary asset under raw storage."""
 
-        extension = ext if ext.startswith('.') else f'.{ext}'
-        return self.path_for_source(source_id, self.settings.raw_dir) / f'{asset_id}{extension}'
+        extension = ext if ext.startswith(".") else f".{ext}"
+        return self.path_for_source(source_id, self.settings.raw_dir) / f"{asset_id}{extension}"

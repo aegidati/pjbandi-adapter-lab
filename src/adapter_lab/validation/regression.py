@@ -43,9 +43,13 @@ class RegressionRunner:
         candidates_path = source_raw / "candidates.ndjson"
         fetched_path = source_raw / "fetch_records.ndjson"
         extractions_path = source_extracted / "extractions.ndjson"
-        candidate_records = self.storage.load_ndjson(candidates_path) if candidates_path.exists() else []
+        candidate_records = (
+            self.storage.load_ndjson(candidates_path) if candidates_path.exists() else []
+        )
         fetch_records = self.storage.load_ndjson(fetched_path) if fetched_path.exists() else []
-        extraction_records = self.storage.load_ndjson(extractions_path) if extractions_path.exists() else []
+        extraction_records = (
+            self.storage.load_ndjson(extractions_path) if extractions_path.exists() else []
+        )
         candidates = [RawCandidate(**record) for record in candidate_records]
         fetched = [FetchRecord(**record) for record in fetch_records]
         extractions = [ExtractionResult(**record) for record in extraction_records]

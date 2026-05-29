@@ -19,7 +19,7 @@ class AdapterRegistry:
         """Return the adapter class for a source ID."""
 
         if source_id not in self._registry:
-            raise KeyError(f'No adapter registered for source_id={source_id}')
+            raise KeyError(f"No adapter registered for source_id={source_id}")
         return self._registry[source_id]
 
     def list_all(self) -> dict[str, type[Any]]:

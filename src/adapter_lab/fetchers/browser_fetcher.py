@@ -8,6 +8,6 @@ class BrowserFetcher:
         """Raise a clear error until browser-based fetching is implemented."""
 
         raise NotImplementedError(
-            'BrowserFetcher is not implemented yet. Use HttpFetcher for static sources '
-            'or extend this class for JavaScript-rendered portals.'
+            "BrowserFetcher is not implemented yet. Use HttpFetcher for static sources "
+            "or extend this class for JavaScript-rendered portals."
         )

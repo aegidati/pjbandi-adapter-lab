@@ -3,7 +3,6 @@ from __future__ import annotations
 from adapter_lab.core.models import EvidenceAsset
 from adapter_lab.core.settings import Settings, get_settings
 from adapter_lab.core.storage import Storage
-from adapter_lab.core.types import AssetType
 from adapter_lab.fetchers.content_detector import ContentDetector
 from adapter_lab.fetchers.http_fetcher import HttpFetcher
 from adapter_lab.utils.hashing import short_id
@@ -24,7 +23,7 @@ class DownloadManager:
         record, body = self.fetcher.fetch(url, source_id=source_id)
         asset_type = self.detector.detect_type(record.content_type, record.final_url, body)
         return EvidenceAsset(
-            id=short_id(f'{record.id}:{url}'),
+            id=short_id(f"{record.id}:{url}"),
             source_id=source_id,
             fetch_record_id=record.id,
             asset_type=asset_type,

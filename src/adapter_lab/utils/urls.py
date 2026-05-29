@@ -14,14 +14,14 @@ def is_pdf_url(url: str) -> bool:
     """Return whether a URL likely targets a PDF file."""
 
     parsed = urlparse(url.lower())
-    return parsed.path.endswith('.pdf') or 'pdf' in parsed.query
+    return parsed.path.endswith(".pdf") or "pdf" in parsed.query
 
 
 def is_doc_url(url: str) -> bool:
     """Return whether a URL likely targets a document archive or office file."""
 
     parsed = urlparse(url.lower())
-    return parsed.path.endswith(('.doc', '.docx', '.zip'))
+    return parsed.path.endswith((".doc", ".docx", ".zip"))
 
 
 def is_external(url: str, base_url: str) -> bool:
@@ -34,8 +34,8 @@ def url_to_filename(url: str) -> str:
     """Convert a URL path into a filesystem-friendly filename stem."""
 
     parsed = urlparse(url)
-    name = PurePosixPath(parsed.path).name or 'index'
-    return name.replace('%20', '_')
+    name = PurePosixPath(parsed.path).name or "index"
+    return name.replace("%20", "_")
 
 
 def extract_domain(url: str) -> str:

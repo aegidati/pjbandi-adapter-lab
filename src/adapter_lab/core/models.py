@@ -45,15 +45,15 @@ class SourceDefinition(ModelBase):
     notes: str = ""
     adapter_status: AdapterStatus = AdapterStatus.DRAFT
 
-    @field_validator('start_urls')
+    @field_validator("start_urls")
     @classmethod
     def validate_start_urls(cls, value: list[str]) -> list[str]:
         urls = _unique_strings(value)
         if not urls:
-            raise ValueError('start_urls must contain at least one URL')
+            raise ValueError("start_urls must contain at least one URL")
         return urls
 
-    @field_validator('tags')
+    @field_validator("tags")
     @classmethod
     def validate_tags(cls, value: list[str]) -> list[str]:
         return _unique_strings(value)
@@ -74,12 +74,12 @@ class SourceProfile(ModelBase):
     candidate_count_estimate: int = 0
     notes: list[str] = Field(default_factory=list)
 
-    @field_validator('detected_links', 'attachment_links', 'notes')
+    @field_validator("detected_links", "attachment_links", "notes")
     @classmethod
     def deduplicate_lists(cls, value: list[str]) -> list[str]:
         return _unique_strings(value)
 
-    @field_validator('candidate_count_estimate')
+    @field_validator("candidate_count_estimate")
     @classmethod
     def validate_candidate_count(cls, value: int) -> int:
         return max(value, 0)
@@ -95,11 +95,11 @@ class RawCandidate(ModelBase):
     title: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
 
-    @field_validator('url')
+    @field_validator("url")
     @classmethod
     def validate_url(cls, value: str) -> str:
         if not value:
-            raise ValueError('url must not be empty')
+            raise ValueError("url must not be empty")
         return value
 
 
@@ -119,14 +119,14 @@ class FetchRecord(ModelBase):
     local_path: str
     asset_ids: list[AssetId] = Field(default_factory=list)
 
-    @field_validator('status_code')
+    @field_validator("status_code")
     @classmethod
     def validate_status_code(cls, value: int) -> int:
         if value < 0 or value > 599:
-            raise ValueError('status_code must be between 0 and 599')
+            raise ValueError("status_code must be between 0 and 599")
         return value
 
-    @field_validator('asset_ids')
+    @field_validator("asset_ids")
     @classmethod
     def deduplicate_asset_ids(cls, value: list[AssetId]) -> list[AssetId]:
         return _unique_strings(value)
@@ -148,7 +148,7 @@ class EvidenceAsset(ModelBase):
     parent_asset_id: AssetId | None = None
     fetched_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
-    @field_validator('file_size')
+    @field_validator("file_size")
     @classmethod
     def validate_file_size(cls, value: int) -> int:
         return max(value, 0)
@@ -170,7 +170,7 @@ class ExtractionResult(ModelBase):
     semantic_fields: dict[str, Any] = Field(default_factory=dict)
     extraction_notes: list[str] = Field(default_factory=list)
 
-    @field_validator('attachment_urls', 'extraction_notes')
+    @field_validator("attachment_urls", "extraction_notes")
     @classmethod
     def deduplicate_output_lists(cls, value: list[str]) -> list[str]:
         return _unique_strings(value)
@@ -193,10 +193,10 @@ class ValidationReport(ModelBase):
     notes: list[str] = Field(default_factory=list)
 
     @field_validator(
-        'pdf_presence_ratio',
-        'missing_title_ratio',
-        'missing_deadline_ratio',
-        'extraction_completeness_score',
+        "pdf_presence_ratio",
+        "missing_title_ratio",
+        "missing_deadline_ratio",
+        "extraction_completeness_score",
     )
     @classmethod
     def clamp_scores(cls, value: float) -> float:

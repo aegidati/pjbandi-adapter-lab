@@ -17,8 +17,8 @@ def setup_logging(level: str | None = None) -> None:
         return
     logging.basicConfig(
         level=resolved_level,
-        format='%(message)s',
-        datefmt='[%X]',
+        format="%(message)s",
+        datefmt="[%X]",
         handlers=[RichHandler(rich_tracebacks=True, show_time=False)],
     )
 

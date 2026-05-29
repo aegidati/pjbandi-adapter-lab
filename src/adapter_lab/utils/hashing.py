@@ -12,7 +12,7 @@ def hash_content(content: bytes) -> str:
 def hash_string(s: str) -> str:
     """Return the SHA-256 hash of a string."""
 
-    return hash_content(s.encode('utf-8'))
+    return hash_content(s.encode("utf-8"))
 
 
 def short_id(s: str, length: int = 12) -> str:

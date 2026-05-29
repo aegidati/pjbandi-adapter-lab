@@ -67,9 +67,9 @@ python -m adapter_lab.main validate veneto_bandi
 
 - `analyze` inspects a starting URL, infers the likely source type, and writes a source profile under `data/profiles/`
 - `discover` runs a registered adapter and stores discovered raw candidates
-- `fetch` downloads candidate pages and linked assets into `data/raw/`
-- `extract` turns fetched evidence into structured extraction results and stores them in `data/extracted/`
-- `validate` computes coverage and completeness checks and writes reports under `data/reports/`
+- `fetch` runs discovery, downloads candidate pages and linked assets, and stores raw evidence under `data/raw/`
+- `extract` runs discovery and fetching as needed, then stores structured extraction results under `data/extracted/`
+- `validate` runs the full adapter flow and writes validation reports under `data/reports/`
 
 ## Development setup
 
@@ -94,6 +94,8 @@ make lint
 make test
 make test-unit
 make test-integration
+make extract SOURCE=veneto_bandi
+make validate SOURCE=veneto_bandi
 ```
 
 ## How to add a new source
@@ -110,7 +112,7 @@ make test-integration
    - Override `discover`, `fetch`, or `extract` only where the source needs specialization.
 4. **Register it**
    - Decorate the class with `@register_adapter("source_id")`.
-   - Import the module from `adapter_lab.main` so the registry is populated at runtime.
+   - Keep the module importable from `adapter_lab.adapters.sources/`; the CLI auto-loads source modules at startup.
 5. **Capture fixtures**
    - Save stable HTML or JSON samples under `data/fixtures/<source_id>/` or `tests/fixtures/`.
 6. **Validate behavior**

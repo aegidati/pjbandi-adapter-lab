@@ -22,7 +22,9 @@ class RegionalHtmlPdfAdapter(CatalogHtmlAdapter):
         links = self.html_extractor.extract_links(html, candidate.url)
         pdf_links = [link for link in links if is_pdf_url(link)]
         if pdf_links:
-            assets.extend(self._download_linked_assets(html, candidate.url, parent_asset_id=main_asset.id))
+            assets.extend(
+                self._download_linked_assets(html, candidate.url, parent_asset_id=main_asset.id)
+            )
         record.asset_ids = [asset.id for asset in assets]
         return record, assets
 
