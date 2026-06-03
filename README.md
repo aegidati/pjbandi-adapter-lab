@@ -50,7 +50,7 @@ adapter-lab analyze https://bandi.regione.example.it
 adapter-lab discover veneto_bandi --limit 20
 adapter-lab fetch veneto_bandi --limit 10
 adapter-lab extract veneto_bandi --limit 10
-adapter-lab validate veneto_bandi
+adapter-lab validate veneto_bandi --limit 20
 ```
 
 Equivalent module invocation:
@@ -60,7 +60,7 @@ python -m adapter_lab.main analyze https://www.incentivi.gov.it
 python -m adapter_lab.main discover incentivi_gov
 python -m adapter_lab.main fetch mimit --limit 5
 python -m adapter_lab.main extract veneto_bandi --limit 5
-python -m adapter_lab.main validate veneto_bandi
+python -m adapter_lab.main validate veneto_bandi --limit 20
 ```
 
 ### Command behavior
@@ -69,7 +69,7 @@ python -m adapter_lab.main validate veneto_bandi
 - `discover` runs a registered adapter and stores discovered raw candidates
 - `fetch` runs discovery, downloads candidate pages and linked assets, and stores raw evidence under `data/raw/`
 - `extract` runs discovery and fetching as needed, then stores structured extraction results under `data/extracted/`
-- `validate` runs the full adapter flow and writes validation reports under `data/reports/`
+- `validate` runs the full adapter flow and writes validation reports under `data/reports/` (`--limit` is available for sampled validation)
 
 ## Development setup
 

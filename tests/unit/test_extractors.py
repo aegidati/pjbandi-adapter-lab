@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from adapter_lab.extractors import pdf_extractors
+from adapter_lab.extractors.pdf_extractors import PdfExtractor
 from adapter_lab.extractors.html_extractors import HtmlExtractor
 from adapter_lab.extractors.regex_extractors import DeterministicExtractor
 from adapter_lab.fetchers.content_detector import ContentDetector
@@ -19,7 +21,9 @@ def test_html_extract_links() -> None:
 
 
 def test_regex_extract_deadline() -> None:
-    text = "La scadenza è fissata al 15 gennaio 2025 per la presentazione delle domande."
+    text = (
+        "La scadenza è fissata al 15 gennaio 2025 per la presentazione delle domande."
+    )
     assert DeterministicExtractor().extract_deadline(text) == "2025-01-15"
 
 
@@ -33,7 +37,9 @@ def test_regex_extract_euro_amounts() -> None:
 def test_content_detector_pdf() -> None:
     detector = ContentDetector()
     assert (
-        detector.detect_type("application/pdf", "https://example.com/file.pdf", b"%PDF-1.7")
+        detector.detect_type(
+            "application/pdf", "https://example.com/file.pdf", b"%PDF-1.7"
+        )
         == AssetType.PDF
     )
 
@@ -41,5 +47,32 @@ def test_content_detector_pdf() -> None:
 def test_content_detector_html() -> None:
     detector = ContentDetector()
     assert (
-        detector.detect_type("text/html", "https://example.com", b"<html></html>") == AssetType.HTML
+        detector.detect_type("text/html", "https://example.com", b"<html></html>")
+        == AssetType.HTML
     )
+
+
+def test_pdf_extractor_returns_empty_if_reader_fails(monkeypatch) -> None:
+    class FailingReader:
+        def __init__(self, *_args, **_kwargs) -> None:
+            raise LookupError("unknown encoding: /SymbolSetEncoding")
+
+    monkeypatch.setattr(pdf_extractors, "PdfReader", FailingReader)
+    assert PdfExtractor().extract_text(b"%PDF-1.7") == ""
+
+
+def test_pdf_extractor_skips_failed_pages(monkeypatch) -> None:
+    class GoodPage:
+        def extract_text(self) -> str:
+            return "Titolo bando"
+
+    class BadPage:
+        def extract_text(self) -> str:
+            raise LookupError("unknown encoding: /SymbolSetEncoding")
+
+    class MixedReader:
+        def __init__(self, *_args, **_kwargs) -> None:
+            self.pages = [GoodPage(), BadPage()]
+
+    monkeypatch.setattr(pdf_extractors, "PdfReader", MixedReader)
+    assert PdfExtractor().extract_text(b"%PDF-1.7") == "Titolo bando"

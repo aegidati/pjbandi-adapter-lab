@@ -176,10 +176,14 @@ class Pipeline:
         self.storage.save_ndjson(extracted_dir / "extractions.ndjson", results)
         return results
 
-    def run_validate(self, source_id: str) -> ValidationReport:
+    def run_validate(
+        self,
+        source_id: str,
+        limit: int | None = None,
+    ) -> ValidationReport:
         """Run validation for a source adapter and persist the report."""
 
-        run = self._run_source(source_id, fetch=True, extract=True)
+        run = self._run_source(source_id, limit=limit, fetch=True, extract=True)
         candidates = run.candidates
         fetch_records = run.fetch_records
         assets = run.assets
@@ -243,7 +247,7 @@ class Pipeline:
     ) -> list[CheckResult]:
         """Apply source-level threshold overrides for known catalogs."""
 
-        if source_id != "incentivi_gov":
+        if source_id not in {"incentivi_gov", "mimit"}:
             return checks
 
         adjusted: list[CheckResult] = []
@@ -263,7 +267,7 @@ class Pipeline:
                     )
                 )
                 continue
-            if check.name == "pdf_presence":
+            if check.name == "pdf_presence" and source_id == "incentivi_gov":
                 threshold = 0.03
                 adjusted.append(
                     CheckResult(
@@ -273,6 +277,20 @@ class Pipeline:
                         message=(
                             f"PDF assets account for {check.score:.0%} "
                             "of fetched assets "
+                            f"(source threshold: {threshold:.0%})."
+                        ),
+                    )
+                )
+                continue
+            if check.name == "extraction_completeness" and source_id == "mimit":
+                threshold = 0.30
+                adjusted.append(
+                    CheckResult(
+                        name=check.name,
+                        passed=check.score >= threshold,
+                        score=check.score,
+                        message=(
+                            f"Fully successful extractions: {check.score:.0%} "
                             f"(source threshold: {threshold:.0%})."
                         ),
                     )

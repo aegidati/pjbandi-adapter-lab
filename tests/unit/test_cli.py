@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typer.testing import CliRunner
 
+from adapter_lab.core.models import ValidationReport
 from adapter_lab.core.models import RawCandidate
 from adapter_lab.main import app
 
@@ -16,7 +17,9 @@ def test_cli_help_lists_core_commands() -> None:
 
 
 def test_cli_discover_uses_registered_sources(monkeypatch) -> None:
-    def fake_run_discover(self, source: str, limit: int | None = None) -> list[RawCandidate]:
+    def fake_run_discover(
+        self, source: str, limit: int | None = None
+    ) -> list[RawCandidate]:
         assert source == "veneto_bandi"
         assert limit is None
         return [
@@ -28,7 +31,9 @@ def test_cli_discover_uses_registered_sources(monkeypatch) -> None:
             )
         ]
 
-    monkeypatch.setattr("adapter_lab.cli.discover.Pipeline.run_discover", fake_run_discover)
+    monkeypatch.setattr(
+        "adapter_lab.cli.discover.Pipeline.run_discover", fake_run_discover
+    )
 
     result = runner.invoke(app, ["discover", "veneto_bandi"])
 
@@ -58,15 +63,54 @@ def test_cli_callback_autoloads_source_adapters(monkeypatch) -> None:
 def test_cli_discover_forwards_limit_to_pipeline(monkeypatch) -> None:
     captured_limit: int | None = None
 
-    def fake_run_discover(self, source: str, limit: int | None = None) -> list[RawCandidate]:
+    def fake_run_discover(
+        self, source: str, limit: int | None = None
+    ) -> list[RawCandidate]:
         nonlocal captured_limit
         assert source == "veneto_bandi"
         captured_limit = limit
         return []
 
-    monkeypatch.setattr("adapter_lab.cli.discover.Pipeline.run_discover", fake_run_discover)
+    monkeypatch.setattr(
+        "adapter_lab.cli.discover.Pipeline.run_discover", fake_run_discover
+    )
 
     result = runner.invoke(app, ["discover", "veneto_bandi", "--limit", "3"])
+
+    assert result.exit_code == 0
+    assert captured_limit == 3
+
+
+def test_cli_validate_forwards_limit_to_pipeline(monkeypatch) -> None:
+    captured_limit: int | None = None
+
+    def fake_run_validate(
+        self,
+        source: str,
+        limit: int | None = None,
+    ) -> ValidationReport:
+        nonlocal captured_limit
+        assert source == "veneto_bandi"
+        captured_limit = limit
+        return ValidationReport(
+            source_id=source,
+            total_candidates=0,
+            total_fetched=0,
+            total_extracted=0,
+            pdf_presence_ratio=0.0,
+            missing_title_ratio=1.0,
+            missing_deadline_ratio=1.0,
+            extraction_completeness_score=0.0,
+            checks=[],
+            passed=False,
+            notes=[],
+        )
+
+    monkeypatch.setattr(
+        "adapter_lab.cli.validate.Pipeline.run_validate", fake_run_validate
+    )
+
+    result = runner.invoke(app, ["validate", "veneto_bandi", "--limit", "3"])
 
     assert result.exit_code == 0
     assert captured_limit == 3
@@ -124,13 +168,16 @@ def test_run_discover_seeds_profile_when_missing(tmp_path, monkeypatch) -> None:
     assert profile_file.exists(), "Profile JSON must be created by run_discover"
 
     import json
+
     profile_data = json.loads(profile_file.read_text())
     assert profile_data["source_id"] == "veneto_bandi"
     assert profile_data["inferred_type"] == "regional_html_pdf"
     assert profile_data["title"] == VenetoBandiAdapter.source_def.name
 
 
-def test_run_discover_does_not_overwrite_existing_profile(tmp_path, monkeypatch) -> None:
+def test_run_discover_does_not_overwrite_existing_profile(
+    tmp_path, monkeypatch
+) -> None:
     """run_discover must not overwrite an existing profile JSON."""
     import json
     from adapter_lab.core.pipeline import Pipeline
@@ -182,4 +229,6 @@ def test_run_discover_does_not_overwrite_existing_profile(tmp_path, monkeypatch)
     pipeline.run_discover("veneto_bandi")
 
     saved = json.loads(existing_profile.read_text())
-    assert saved.get("custom") == "do-not-overwrite", "Existing profile must not be overwritten"
+    assert (
+        saved.get("custom") == "do-not-overwrite"
+    ), "Existing profile must not be overwritten"

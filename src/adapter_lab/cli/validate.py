@@ -9,10 +9,18 @@ from adapter_lab.core.pipeline import Pipeline
 console = Console()
 
 
-def validate_cmd(source: str = typer.Argument(..., help="Source ID")) -> None:
+def validate_cmd(
+    source: str = typer.Argument(..., help="Source ID"),
+    limit: int | None = typer.Option(
+        None,
+        "--limit",
+        min=1,
+        help="Maximum number of candidates to validate.",
+    ),
+) -> None:
     """Validate a source adapter and print summary checks."""
 
-    report = Pipeline().run_validate(source)
+    report = Pipeline().run_validate(source, limit=limit)
     table = Table(title=f"Validation report for {source}")
     table.add_column("Check")
     table.add_column("Passed")
