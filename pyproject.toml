@@ -47,3 +47,4 @@ src = ["src"]
 [tool.mypy]
 python_version = "3.12"
 strict = false
+ignore_missing_imports = true

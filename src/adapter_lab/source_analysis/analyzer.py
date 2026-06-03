@@ -25,7 +25,8 @@ class SourceAnalyzer:
         pagination = self._detect_pagination(html, url)
         attachments = self._detect_attachments(html)
         source_id = (
-            extract_domain(url).replace(".", "_").replace("-", "_") or "unknown_source"
+            extract_domain(url).replace(".", "_").replace("-", "_")
+            or "unknown_source"
         )
         notes = [
             f"Detected {len(links)} candidate links",
@@ -63,7 +64,9 @@ class SourceAnalyzer:
         lower_html = html.lower()
         if "application/json" in lower_html or "api/" in url:
             return SourceType.API_BACKED
-        if ".pdf" in lower_html and ("bando" in lower_html or "allegato" in lower_html):
+        if ".pdf" in lower_html and (
+            "bando" in lower_html or "allegato" in lower_html
+        ):
             return SourceType.REGIONAL_HTML_PDF
         if is_pdf_url(url):
             return SourceType.PDF_FIRST
@@ -81,7 +84,14 @@ class SourceAnalyzer:
         """Extract likely candidate detail links from a page."""
 
         links = self.html_extractor.extract_links(html, base_url)
-        keywords = ("bando", "avviso", "scheda", "opportun", "contribut", "incentiv")
+        keywords = (
+            "bando",
+            "avviso",
+            "scheda",
+            "opportun",
+            "contribut",
+            "incentiv",
+        )
         filtered = [
             link
             for link in links

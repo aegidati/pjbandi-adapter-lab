@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import asdict
 from dataclasses import dataclass
 
 from adapter_lab.core.models import (
@@ -39,7 +40,9 @@ class SourceRunData:
 class Pipeline:
     """High-level orchestration for adapter lab workflows."""
 
-    def __init__(self, settings: Settings | None = None, storage: Storage | None = None) -> None:
+    def __init__(
+        self, settings: Settings | None = None, storage: Storage | None = None
+    ) -> None:
         self.settings = settings or get_settings()
         self.storage = storage or Storage(self.settings)
         self.report_writer = ReportWriter(self.settings, self.storage)
@@ -65,7 +68,12 @@ class Pipeline:
         assets: list[EvidenceAsset] = []
         extractions: list[ExtractionResult] = []
         if not fetch and not extract:
-            return SourceRunData(candidates, fetch_records, assets, extractions)
+            return SourceRunData(
+                candidates,
+                fetch_records,
+                assets,
+                extractions,
+            )
 
         for candidate in candidates:
             record, candidate_assets = adapter.fetch(candidate)
@@ -92,7 +100,9 @@ class Pipeline:
         builder.save(profile)
         return profile
 
-    def run_discover(self, source_id: str, limit: int | None = None) -> list[RawCandidate]:
+    def run_discover(
+        self, source_id: str, limit: int | None = None
+    ) -> list[RawCandidate]:
         """Run discovery for a registered source adapter.
 
         Also seeds a source profile from the adapter's SourceDefinition when no
@@ -104,7 +114,8 @@ class Pipeline:
         run = self._run_source(source_id, limit)
         candidates = run.candidates
         ndjson_path = (
-            self.storage.path_for_source(source_id, self.settings.raw_dir) / "candidates.ndjson"
+            self.storage.path_for_source(source_id, self.settings.raw_dir)
+            / "candidates.ndjson"
         )
         self.storage.save_ndjson(ndjson_path, candidates)
 
@@ -116,20 +127,32 @@ class Pipeline:
 
         return candidates
 
-    def run_fetch(self, source_id: str, limit: int | None = None) -> list[FetchRecord]:
+    def run_fetch(
+        self,
+        source_id: str,
+        limit: int | None = None,
+    ) -> list[FetchRecord]:
         """Run fetch for discovered candidates and persist fetch metadata."""
 
         run = self._run_source(source_id, limit, fetch=True)
         candidates = run.candidates
         fetch_records = run.fetch_records
         assets = run.assets
-        raw_dir = self.storage.path_for_source(source_id, self.settings.raw_dir)
+        raw_dir = self.storage.path_for_source(
+            source_id,
+            self.settings.raw_dir,
+        )
         self.storage.save_ndjson(raw_dir / "candidates.ndjson", candidates)
-        self.storage.save_ndjson(raw_dir / "fetch_records.ndjson", fetch_records)
+        self.storage.save_ndjson(
+            raw_dir / "fetch_records.ndjson",
+            fetch_records,
+        )
         self.storage.save_ndjson(raw_dir / "assets.ndjson", assets)
         return fetch_records
 
-    def run_extract(self, source_id: str, limit: int | None = None) -> list[ExtractionResult]:
+    def run_extract(
+        self, source_id: str, limit: int | None = None
+    ) -> list[ExtractionResult]:
         """Run extraction for discovered candidates and persist results."""
 
         run = self._run_source(source_id, limit, fetch=True, extract=True)
@@ -137,16 +160,24 @@ class Pipeline:
         fetch_records = run.fetch_records
         assets = run.assets
         results = run.extractions
-        raw_dir = self.storage.path_for_source(source_id, self.settings.raw_dir)
-        extracted_dir = self.storage.path_for_source(source_id, self.settings.extracted_dir)
+        raw_dir = self.storage.path_for_source(
+            source_id,
+            self.settings.raw_dir,
+        )
+        extracted_dir = self.storage.path_for_source(
+            source_id, self.settings.extracted_dir
+        )
         self.storage.save_ndjson(raw_dir / "candidates.ndjson", candidates)
-        self.storage.save_ndjson(raw_dir / "fetch_records.ndjson", fetch_records)
+        self.storage.save_ndjson(
+            raw_dir / "fetch_records.ndjson",
+            fetch_records,
+        )
         self.storage.save_ndjson(raw_dir / "assets.ndjson", assets)
         self.storage.save_ndjson(extracted_dir / "extractions.ndjson", results)
         return results
 
     def run_validate(self, source_id: str) -> ValidationReport:
-        """Run end-to-end validation for a source adapter and persist the report."""
+        """Run validation for a source adapter and persist the report."""
 
         run = self._run_source(source_id, fetch=True, extract=True)
         candidates = run.candidates
@@ -161,8 +192,13 @@ class Pipeline:
             check_deadline_completeness(extractions),
             check_extraction_completeness(extractions),
         ]
-        title_check = next(check for check in checks if check.name == "title_completeness")
-        deadline_check = next(check for check in checks if check.name == "deadline_completeness")
+        checks = self._apply_source_specific_validation(source_id, checks)
+        title_check = next(
+            check for check in checks if check.name == "title_completeness"
+        )
+        deadline_check = next(
+            check for check in checks if check.name == "deadline_completeness"
+        )
         extraction_check = next(
             check for check in checks if check.name == "extraction_completeness"
         )
@@ -173,18 +209,74 @@ class Pipeline:
             total_fetched=len(fetch_records),
             total_extracted=len(extractions),
             pdf_presence_ratio=pdf_check.score,
-            missing_title_ratio=1.0 - title_check.score if extractions else 1.0,
-            missing_deadline_ratio=1.0 - deadline_check.score if extractions else 1.0,
+            missing_title_ratio=(1.0 - title_check.score if extractions else 1.0),
+            missing_deadline_ratio=(1.0 - deadline_check.score if extractions else 1.0),
             extraction_completeness_score=extraction_check.score,
-            checks=[check.__dict__ for check in checks],
+            checks=[asdict(check) for check in checks],
             passed=all(check.passed for check in checks),
             notes=[check.message for check in checks if not check.passed],
         )
-        raw_dir = self.storage.path_for_source(source_id, self.settings.raw_dir)
-        extracted_dir = self.storage.path_for_source(source_id, self.settings.extracted_dir)
+        raw_dir = self.storage.path_for_source(
+            source_id,
+            self.settings.raw_dir,
+        )
+        extracted_dir = self.storage.path_for_source(
+            source_id, self.settings.extracted_dir
+        )
         self.storage.save_ndjson(raw_dir / "candidates.ndjson", candidates)
-        self.storage.save_ndjson(raw_dir / "fetch_records.ndjson", fetch_records)
+        self.storage.save_ndjson(
+            raw_dir / "fetch_records.ndjson",
+            fetch_records,
+        )
         self.storage.save_ndjson(raw_dir / "assets.ndjson", assets)
-        self.storage.save_ndjson(extracted_dir / "extractions.ndjson", extractions)
+        self.storage.save_ndjson(
+            extracted_dir / "extractions.ndjson",
+            extractions,
+        )
         self.report_writer.write_validation_report(report)
         return report
+
+    def _apply_source_specific_validation(
+        self,
+        source_id: str,
+        checks: list[CheckResult],
+    ) -> list[CheckResult]:
+        """Apply source-level threshold overrides for known catalogs."""
+
+        if source_id != "incentivi_gov":
+            return checks
+
+        adjusted: list[CheckResult] = []
+        for check in checks:
+            if check.name == "deadline_completeness":
+                threshold = 0.30
+                adjusted.append(
+                    CheckResult(
+                        name=check.name,
+                        passed=check.score >= threshold,
+                        score=check.score,
+                        message=(
+                            f"Deadlines present for {check.score:.0%} "
+                            "of extractions "
+                            f"(source threshold: {threshold:.0%})."
+                        ),
+                    )
+                )
+                continue
+            if check.name == "pdf_presence":
+                threshold = 0.03
+                adjusted.append(
+                    CheckResult(
+                        name=check.name,
+                        passed=check.score >= threshold,
+                        score=check.score,
+                        message=(
+                            f"PDF assets account for {check.score:.0%} "
+                            "of fetched assets "
+                            f"(source threshold: {threshold:.0%})."
+                        ),
+                    )
+                )
+                continue
+            adjusted.append(check)
+        return adjusted

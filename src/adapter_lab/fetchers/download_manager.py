@@ -6,12 +6,17 @@ from adapter_lab.core.storage import Storage
 from adapter_lab.fetchers.content_detector import ContentDetector
 from adapter_lab.fetchers.http_fetcher import HttpFetcher
 from adapter_lab.utils.hashing import short_id
+from adapter_lab.utils.logging import get_logger
+
+LOGGER = get_logger(__name__)
 
 
 class DownloadManager:
     """Download helper that converts URLs into evidence assets."""
 
-    def __init__(self, settings: Settings | None = None, storage: Storage | None = None) -> None:
+    def __init__(
+        self, settings: Settings | None = None, storage: Storage | None = None
+    ) -> None:
         self.settings = settings or get_settings()
         self.storage = storage or Storage(self.settings)
         self.fetcher = HttpFetcher(self.settings, self.storage)
@@ -21,7 +26,9 @@ class DownloadManager:
         """Download a single asset and return its metadata."""
 
         record, body = self.fetcher.fetch(url, source_id=source_id)
-        asset_type = self.detector.detect_type(record.content_type, record.final_url, body)
+        asset_type = self.detector.detect_type(
+            record.content_type, record.final_url, body
+        )
         return EvidenceAsset(
             id=short_id(f"{record.id}:{url}"),
             source_id=source_id,
@@ -35,8 +42,17 @@ class DownloadManager:
             fetched_at=record.fetched_at,
         )
 
-    def download_many(self, urls: list[str], source_id: str) -> list[EvidenceAsset]:
-        """Download multiple assets for a source."""
+    def download_many(
+        self,
+        urls: list[str],
+        source_id: str,
+        fail_fast: bool = False,
+    ) -> list[EvidenceAsset]:
+        """Download multiple assets for a source.
+
+        By default, failed downloads are skipped so that one dead attachment
+        does not break the full source pipeline.
+        """
 
         assets: list[EvidenceAsset] = []
         seen: set[str] = set()
@@ -44,5 +60,12 @@ class DownloadManager:
             if url in seen:
                 continue
             seen.add(url)
-            assets.append(self.download_asset(url, source_id))
+            try:
+                assets.append(self.download_asset(url, source_id))
+            except Exception as exc:
+                LOGGER.warning(
+                    "Skipping attachment download for %s: %s", url, exc
+                )
+                if fail_fast:
+                    raise
         return assets

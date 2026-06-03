@@ -42,7 +42,12 @@ def normalize_italian_date(text: str) -> str | None:
         year = year if len(year) == 4 else f"20{year}"
         return f"{year}-{int(month):02d}-{int(day):02d}"
     textual_match = re.search(
-        r"(\d{1,2})\s+(gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)\s+(\d{4})",
+        (
+            r"(\d{1,2})\s+"
+            r"(gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|"
+            r"agosto|settembre|ottobre|novembre|dicembre)\s+"
+            r"(\d{4})"
+        ),
         cleaned,
     )
     if textual_match:

@@ -52,7 +52,10 @@ class HttpFetcher:
         return ".bin"
 
     def fetch(
-        self, url: str, source_id: str = "generic", candidate_id: str | None = None
+        self,
+        url: str,
+        source_id: str = "generic",
+        candidate_id: str | None = None,
     ) -> tuple[FetchRecord, bytes]:
         """Fetch a URL, persist the response body, and return fetch metadata plus bytes."""
 
@@ -93,7 +96,9 @@ class HttpFetcher:
 
         body = response.content
         body_hash = hash_content(body)
-        record_id = short_id(f"{url}:{body_hash}:{datetime.now(UTC).isoformat()}")
+        record_id = short_id(
+            f"{url}:{body_hash}:{datetime.now(UTC).isoformat()}"
+        )
         local_path = self.storage.path_for_asset(
             source_id,
             record_id,

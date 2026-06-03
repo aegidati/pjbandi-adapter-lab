@@ -18,10 +18,18 @@ class Settings(BaseSettings):
 
     data_dir: Path = Field(default=Path("data"), alias="DATA_DIR")
     raw_dir: Path = Field(default=Path("data/raw"), alias="RAW_DIR")
-    extracted_dir: Path = Field(default=Path("data/extracted"), alias="EXTRACTED_DIR")
-    profiles_dir: Path = Field(default=Path("data/profiles"), alias="PROFILES_DIR")
-    fixtures_dir: Path = Field(default=Path("data/fixtures"), alias="FIXTURES_DIR")
-    reports_dir: Path = Field(default=Path("data/reports"), alias="REPORTS_DIR")
+    extracted_dir: Path = Field(
+        default=Path("data/extracted"), alias="EXTRACTED_DIR"
+    )
+    profiles_dir: Path = Field(
+        default=Path("data/profiles"), alias="PROFILES_DIR"
+    )
+    fixtures_dir: Path = Field(
+        default=Path("data/fixtures"), alias="FIXTURES_DIR"
+    )
+    reports_dir: Path = Field(
+        default=Path("data/reports"), alias="REPORTS_DIR"
+    )
 
     http_timeout: int = Field(default=30, alias="HTTP_TIMEOUT")
     http_max_retries: int = Field(default=3, alias="HTTP_MAX_RETRIES")
