@@ -25,6 +25,8 @@ class Settings(BaseSettings):
 
     http_timeout: int = Field(default=30, alias="HTTP_TIMEOUT")
     http_max_retries: int = Field(default=3, alias="HTTP_MAX_RETRIES")
+    http_verify_ssl: bool = Field(default=True, alias="HTTP_VERIFY_SSL")
+    http_ca_bundle: Path | None = Field(default=None, alias="HTTP_CA_BUNDLE")
     user_agent: str = Field(
         default="AdapterLab/0.1 (+https://github.com/aegidati/pjbandi-adapter-lab)",
         alias="USER_AGENT",
@@ -35,6 +37,15 @@ class Settings(BaseSettings):
     llm_api_key: str | None = Field(default=None, alias="LLM_API_KEY")
 
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
+
+    def http_verify_value(self) -> bool | str:
+        """Return the TLS verification value accepted by httpx."""
+
+        if not self.http_verify_ssl:
+            return False
+        if self.http_ca_bundle is not None:
+            return str(self.http_ca_bundle.expanduser())
+        return True
 
 
 @lru_cache(maxsize=1)

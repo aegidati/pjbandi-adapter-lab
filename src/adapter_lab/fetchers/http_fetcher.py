@@ -18,9 +18,19 @@ LOGGER = get_logger(__name__)
 class HttpFetcher:
     """HTTP fetcher with retries and on-disk persistence of fetched bodies."""
 
-    def __init__(self, settings: Settings | None = None, storage: Storage | None = None) -> None:
+    def __init__(
+        self,
+        settings: Settings | None = None,
+        storage: Storage | None = None,
+    ) -> None:
         self.settings = settings or get_settings()
         self.storage = storage or Storage(self.settings)
+        if not self.settings.http_verify_ssl:
+            LOGGER.warning(
+                "HTTP SSL verification is disabled via "
+                "HTTP_VERIFY_SSL=false; use only in trusted "
+                "environments."
+            )
 
     def get_headers(self) -> dict[str, str]:
         """Return default request headers."""
@@ -52,6 +62,7 @@ class HttpFetcher:
             follow_redirects=True,
             headers=self.get_headers(),
             timeout=timeout,
+            verify=self.settings.http_verify_value(),
         ) as client:
             for attempt in range(1, self.settings.http_max_retries + 1):
                 try:
@@ -69,6 +80,13 @@ class HttpFetcher:
                         exc,
                     )
                     if attempt == self.settings.http_max_retries:
+                        if "CERTIFICATE_VERIFY_FAILED" in str(exc):
+                            raise RuntimeError(
+                                "TLS certificate verification failed while "
+                                f"fetching {url}. Set HTTP_CA_BUNDLE to your "
+                                "trusted corporate/root CA or, for local "
+                                "debugging only, set HTTP_VERIFY_SSL=false."
+                            ) from exc
                         raise
             else:
                 raise RuntimeError(f"Unable to fetch {url}: {last_error}")
@@ -79,13 +97,16 @@ class HttpFetcher:
         local_path = self.storage.path_for_asset(
             source_id,
             record_id,
-            self._extension_for(str(response.url), response.headers.get("content-type")),
+            self._extension_for(
+                str(response.url), response.headers.get("content-type")
+            ),
         )
         self.storage.save_bytes(local_path, body)
         headers_summary = {
             key: value
             for key, value in response.headers.items()
-            if key.lower() in {"content-type", "content-length", "last-modified", "etag"}
+            if key.lower()
+            in {"content-type", "content-length", "last-modified", "etag"}
         }
         record = FetchRecord(
             id=record_id,

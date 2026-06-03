@@ -98,6 +98,14 @@ make extract SOURCE=veneto_bandi
 make validate SOURCE=veneto_bandi
 ```
 
+### TLS troubleshooting (corporate/self-signed certificates)
+
+If commands such as `discover`, `fetch`, or `extract` fail with
+`CERTIFICATE_VERIFY_FAILED`, configure one of these environment variables in `.env`:
+
+- `HTTP_CA_BUNDLE`: path to your trusted corporate/root CA PEM bundle (recommended)
+- `HTTP_VERIFY_SSL=false`: disable certificate verification only for local debugging
+
 ## How to add a new source
 
 1. **Analyze the source**
