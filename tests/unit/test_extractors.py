@@ -76,3 +76,25 @@ def test_pdf_extractor_skips_failed_pages(monkeypatch) -> None:
 
     monkeypatch.setattr(pdf_extractors, "PdfReader", MixedReader)
     assert PdfExtractor().extract_text(b"%PDF-1.7") == "Titolo bando"
+
+
+def test_pdf_extractor_skips_failed_page_access(monkeypatch) -> None:
+    class GoodPage:
+        def extract_text(self) -> str:
+            return "Titolo bando"
+
+    class RaisingPages:
+        def __len__(self) -> int:
+            return 2
+
+        def __getitem__(self, index: int):
+            if index == 0:
+                return GoodPage()
+            raise ValueError("cannot read page object")
+
+    class ReaderWithBrokenPageAccess:
+        def __init__(self, *_args, **_kwargs) -> None:
+            self.pages = RaisingPages()
+
+    monkeypatch.setattr(pdf_extractors, "PdfReader", ReaderWithBrokenPageAccess)
+    assert PdfExtractor().extract_text(b"%PDF-1.7") == "Titolo bando"

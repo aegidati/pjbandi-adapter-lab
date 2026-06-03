@@ -23,9 +23,16 @@ class PdfExtractor:
             logger.warning("PDF reader initialization failed: %s", exc)
             return ""
 
+        try:
+            page_count = len(reader.pages)
+        except Exception as exc:
+            logger.warning("PDF page index resolution failed: %s", exc)
+            return ""
+
         texts: list[str] = []
-        for idx, page in enumerate(reader.pages):
+        for idx in range(page_count):
             try:
+                page = reader.pages[idx]
                 texts.append(page.extract_text() or "")
             except Exception as exc:
                 logger.warning("PDF page extraction failed at page %s: %s", idx, exc)
