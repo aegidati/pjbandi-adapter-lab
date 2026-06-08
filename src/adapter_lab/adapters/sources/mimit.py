@@ -17,6 +17,18 @@ from adapter_lab.utils.urls import normalize_url
 
 _MIMIT_PAGE_SIZE = 20
 _MIMIT_MAX_PAGES = 20
+_MIMIT_DISALLOWED_SLUGS = {
+    "faq",
+    "glossario",
+    "open-data",
+    "privacy",
+    "note-legali",
+    "accessibilita",
+    "chi-siamo",
+    "incentivi",
+    "bandi",
+    "notizie",
+}
 
 
 @register_adapter("mimit")
@@ -94,10 +106,18 @@ class MimitAdapter(RegionalHtmlPdfAdapter):
         base_host = urlparse(str(self.source_def.base_url)).netloc
         if parsed.netloc != base_host:
             return False
-        path = parsed.path.rstrip("/")
+        path = parsed.path.lower().rstrip("/")
         if path == "/it/incentivi":
             return False
-        return path.startswith("/it/incentivi/")
+        if not path.startswith("/it/incentivi/"):
+            return False
+
+        segments = [segment for segment in path.split("/") if segment]
+        if len(segments) < 3:
+            return False
+        if segments[-1] in _MIMIT_DISALLOWED_SLUGS:
+            return False
+        return True
 
     def _page_url(self, listing_url: str, start: int) -> str:
         parsed = urlparse(listing_url)

@@ -27,6 +27,18 @@ from adapter_lab.utils.urls import normalize_url
 _DETAIL_PATH_PREFIX = "/incentivi-e-strumenti/"
 _LISTING_PATH = "/per-le-imprese/incentivi-e-strumenti"
 _MAX_DISCOVERY_PAGES = 30
+_DETAIL_DISALLOWED_SLUGS = {
+    "faq",
+    "glossario",
+    "open-data",
+    "privacy",
+    "note-legali",
+    "accessibilita",
+    "chi-siamo",
+    "incentivi",
+    "strumenti",
+    "incentivi-e-strumenti",
+}
 _OPEN_LABEL_RE = re.compile(r"data\s+apertura[^\d]*([^\n\r]+)", re.IGNORECASE)
 _CLOSE_LABEL_RE = re.compile(r"data\s+chiusura[^\d]*([^\n\r]+)", re.IGNORECASE)
 _DETAIL_TITLE_PREFIX_RE = re.compile(r"^leggi\s+tutto\s+su\s+", re.IGNORECASE)
@@ -263,7 +275,17 @@ class InvitaliaAdapter(CatalogHtmlAdapter):
         normalized = path.lower().rstrip("/")
         if normalized == _LISTING_PATH:
             return False
-        return normalized.startswith(_DETAIL_PATH_PREFIX.rstrip("/"))
+        detail_prefix = _DETAIL_PATH_PREFIX.rstrip("/")
+        if not normalized.startswith(detail_prefix):
+            return False
+
+        segments = [segment for segment in normalized.split("/") if segment]
+        if len(segments) < 2:
+            return False
+        leaf = segments[-1]
+        if leaf in _DETAIL_DISALLOWED_SLUGS:
+            return False
+        return True
 
     def _has_next_page(self, soup: BeautifulSoup, page_index: int) -> bool:
         next_page_marker = f"page={page_index + 1}"

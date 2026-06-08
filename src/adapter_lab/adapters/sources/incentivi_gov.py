@@ -87,6 +87,32 @@ class IncentiviGovAdapter(CatalogHtmlAdapter):
         "/it/note-legali",
         "/it/accessibilita",
     }
+    _DISALLOWED_PREFIXES = (
+        "/it/chi-siamo",
+        "/it/faq",
+        "/it/glossario",
+        "/it/open-data",
+        "/it/privacy",
+        "/it/note-legali",
+        "/it/accessibilita",
+        "/it/scrivania",
+    )
+    _GENERIC_SECTION_SLUGS = {
+        "incentivi",
+        "incentivo",
+        "misure",
+        "misura",
+        "bandi",
+        "bando",
+        "schede",
+        "scheda",
+        "agevolazioni",
+        "agevolazione",
+        "catalogo",
+    }
+    _DISALLOWED_LEAF_SLUGS = {
+        "confronta",
+    }
 
     source_def = SourceDefinition(
         id="incentivi_gov",
@@ -335,10 +361,32 @@ class IncentiviGovAdapter(CatalogHtmlAdapter):
             return False
         if path in self._DISALLOWED_PATHS:
             return False
-        if path.startswith("/it/scrivania"):
+
+        if any(
+            path == prefix or path.startswith(f"{prefix}/")
+            for prefix in self._DISALLOWED_PREFIXES
+        ):
             return False
+
+        segments = [segment for segment in path.split("/") if segment]
+        if len(segments) < 2:
+            return False
+
+        leaf = segments[-1]
+        if leaf in self._DISALLOWED_LEAF_SLUGS:
+            return False
+
+        if leaf in self._GENERIC_SECTION_SLUGS:
+            return False
+
         if path.startswith("/it/catalogo/"):
+            # Catalog detail pages are canonical for this source.
             return True
+
+        # Outside /it/catalogo/, require at least /it/<section>/<detail-slug>.
+        if len(segments) < 3:
+            return False
+
         return any(
             token in path
             for token in ("incentiv", "misura", "agevolaz", "bando", "scheda")

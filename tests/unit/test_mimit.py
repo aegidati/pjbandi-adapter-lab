@@ -114,3 +114,26 @@ def test_mimit_extract_reads_title_and_dates(tmp_path) -> None:
     assert result.publication_date == "2026-06-03"
     assert result.deadline == "2026-09-30"
     assert result.status.value == "success"
+
+
+def test_mimit_discover_filters_non_detail_section_urls(monkeypatch) -> None:
+    listing_html = b"""<!DOCTYPE html>
+<html><body>
+    <a href="/it/incentivi/faq">FAQ</a>
+    <a href="/it/incentivi/open-data">Open Data</a>
+    <a href="/it/incentivi/fondo-straordinario-editoria-2025">Fondo Editoria</a>
+</body></html>"""
+
+    monkeypatch.setattr(
+        HttpFetcher,
+        "fetch",
+        _make_fake_fetcher(listing_html, b"<html><body></body></html>", b"<html></html>"),
+    )
+
+    adapter = MimitAdapter()
+    candidates = adapter.discover()
+
+    assert len(candidates) == 1
+    assert candidates[0].url.endswith(
+        "/it/incentivi/fondo-straordinario-editoria-2025"
+    )

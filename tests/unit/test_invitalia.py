@@ -195,3 +195,24 @@ def test_invitalia_discover_cleans_noisy_html_titles(monkeypatch) -> None:
 
     assert len(candidates) == 1
     assert candidates[0].title == "CASO TITOLO"
+
+
+def test_invitalia_discover_filters_non_detail_section_urls(monkeypatch) -> None:
+    listing_html = b"""<!DOCTYPE html>
+<html><body>
+    <a href="/incentivi-e-strumenti/faq">FAQ</a>
+    <a href="/incentivi-e-strumenti/open-data">Open Data</a>
+    <a href="/incentivi-e-strumenti/voucher-sviluppo-pmi">Voucher PMI</a>
+</body></html>"""
+
+    monkeypatch.setattr(
+        HttpFetcher,
+        "fetch",
+        _make_fake_fetcher(listing_html, b"<html><body></body></html>", b"<html></html>"),
+    )
+
+    adapter = InvitaliaAdapter()
+    candidates = adapter.discover()
+
+    assert len(candidates) == 1
+    assert candidates[0].url.endswith("/incentivi-e-strumenti/voucher-sviluppo-pmi")

@@ -137,6 +137,165 @@ def test_incentivi_gov_adapter_pipeline_from_solr_fixture(monkeypatch) -> None:
     assert results[0].deadline == "2026-06-30"
 
 
+def test_incentivi_gov_adapter_pipeline_filters_mixed_non_detail_urls(
+    monkeypatch,
+) -> None:
+    listing_html = b"""<!DOCTYPE html>
+<html><head>
+<script id=\"service-config\" type=\"application/json\">
+[
+    {\"id\": \"solrQueryLimit\", \"value\": \"50\"},
+    {\"id\": \"solrEndpoint\", \"value\": \"/solr/coredrupal/select\"}
+]
+</script>
+</head><body></body></html>"""
+    solr_json = b"""{
+    \"response\": {
+        \"docs\": [
+            {
+                \"id\": \"bad-1\",
+                \"title\": \"FAQ Incentivi\",
+                \"url\": \"/it/faq/incentivi\"
+            },
+            {
+                \"id\": \"ok-1\",
+                \"title\": \"Incentivo filtro integrazione\",
+                \"url\": \"/it/catalogo/incentivo-filtro-integrazione\",
+                \"data_pubblicazione\": \"02/06/2026\",
+                \"scadenza\": \"31/07/2026\"
+            }
+        ]
+    }
+}"""
+    detail_html = b"<html><body><h1>Titolo dettaglio</h1></body></html>"
+
+    def fake_fetch(
+        self,
+        url: str,
+        source_id: str = "generic",
+        candidate_id: str | None = None,
+    ):
+        if "/solr/coredrupal/select" in url:
+            body = solr_json
+            content_type = "application/json"
+        elif url.endswith("/it/catalogo"):
+            body = listing_html
+            content_type = "text/html"
+        else:
+            body = detail_html
+            content_type = "text/html"
+        path = Path(
+            f"data/raw/{source_id}/{candidate_id or 'listing'}_{hash_content(url.encode())[:8]}.bin"
+        )
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(body)
+        record = FetchRecord(
+            id=candidate_id or hash_content(url.encode())[:12],
+            candidate_id=candidate_id or "listing",
+            source_id=source_id,
+            original_url=url,
+            final_url=url,
+            fetched_at=datetime.now(UTC),
+            status_code=200,
+            content_type=content_type,
+            body_hash=hash_content(body),
+            local_path=str(path),
+        )
+        return record, body
+
+    monkeypatch.setattr(HttpFetcher, "fetch", fake_fetch)
+
+    adapter = IncentiviGovAdapter()
+    results = adapter.run_pipeline(limit=10)
+
+    assert len(results) == 1
+    assert results[0].title == "Incentivo filtro integrazione"
+    assert results[0].publication_date == "2026-06-02"
+    assert results[0].deadline == "2026-07-31"
+
+
+def test_incentivi_gov_adapter_pipeline_ignores_confronta_urls(
+    monkeypatch,
+) -> None:
+    listing_html = b"""<!DOCTYPE html>
+<html><head>
+<script id=\"service-config\" type=\"application/json\">
+[
+    {\"id\": \"solrQueryLimit\", \"value\": \"50\"},
+    {\"id\": \"solrEndpoint\", \"value\": \"/solr/coredrupal/select\"}
+]
+</script>
+</head><body></body></html>"""
+    solr_json = b"""{
+    \"response\": {
+        \"docs\": [
+            {
+                \"id\": \"bad-1\",
+                \"title\": \"Confronta\",
+                \"url\": \"/it/confronta\"
+            },
+            {
+                \"id\": \"bad-2\",
+                \"title\": \"Confronta catalogo\",
+                \"url\": \"/it/catalogo/confronta\"
+            },
+            {
+                \"id\": \"ok-1\",
+                \"title\": \"Incentivo stabile\",
+                \"url\": \"/it/catalogo/incentivo-stabile\",
+                \"data_pubblicazione\": \"04/06/2026\",
+                \"scadenza\": \"31/08/2026\"
+            }
+        ]
+    }
+}"""
+    detail_html = b"<html><body><h1>Titolo dettaglio</h1></body></html>"
+
+    def fake_fetch(
+        self,
+        url: str,
+        source_id: str = "generic",
+        candidate_id: str | None = None,
+    ):
+        if "/solr/coredrupal/select" in url:
+            body = solr_json
+            content_type = "application/json"
+        elif url.endswith("/it/catalogo"):
+            body = listing_html
+            content_type = "text/html"
+        else:
+            body = detail_html
+            content_type = "text/html"
+        path = Path(
+            f"data/raw/{source_id}/{candidate_id or 'listing'}_{hash_content(url.encode())[:8]}.bin"
+        )
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(body)
+        record = FetchRecord(
+            id=candidate_id or hash_content(url.encode())[:12],
+            candidate_id=candidate_id or "listing",
+            source_id=source_id,
+            original_url=url,
+            final_url=url,
+            fetched_at=datetime.now(UTC),
+            status_code=200,
+            content_type=content_type,
+            body_hash=hash_content(body),
+            local_path=str(path),
+        )
+        return record, body
+
+    monkeypatch.setattr(HttpFetcher, "fetch", fake_fetch)
+
+    adapter = IncentiviGovAdapter()
+    results = adapter.run_pipeline(limit=10)
+
+    assert len(results) == 1
+    assert results[0].title == "Incentivo stabile"
+    assert results[0].publication_date == "2026-06-04"
+    assert results[0].deadline == "2026-08-31"
+
+
 def test_invitalia_adapter_pipeline_from_paginated_fixture(monkeypatch) -> None:
     listing_page0 = Path("tests/fixtures/invitalia/listing_page0.html").read_bytes()
     listing_page1 = Path("tests/fixtures/invitalia/listing_page1.html").read_bytes()
@@ -190,6 +349,68 @@ def test_invitalia_adapter_pipeline_from_paginated_fixture(monkeypatch) -> None:
     assert len(results) == 1
     assert results[0].title == "Voucher per il sostegno dei piccoli editori"
     assert results[0].publication_date == "2026-06-22"
+    assert results[0].deadline == "2026-09-30"
+
+
+def test_invitalia_adapter_pipeline_filters_mixed_non_detail_urls(
+    monkeypatch,
+) -> None:
+    listing_page0 = b"""<!DOCTYPE html>
+<html><body>
+    <a href="/incentivi-e-strumenti/faq">FAQ</a>
+    <a href="/incentivi-e-strumenti/voucher-filtrato">Voucher Filtrato</a>
+</body></html>"""
+    listing_page1 = b"<html><body></body></html>"
+    detail_html = b"""<!DOCTYPE html>
+<html><body>
+    <h1>Voucher Filtrato</h1>
+    <p>Data apertura: 10/06/2026</p>
+    <p>Data chiusura: 30/09/2026</p>
+</body></html>"""
+
+    def fake_fetch(
+        self,
+        url: str,
+        source_id: str = "generic",
+        candidate_id: str | None = None,
+    ):
+        if "page=1" in url:
+            body = listing_page1
+            content_type = "text/html"
+        elif "/incentivi-e-strumenti/" in url:
+            body = detail_html
+            content_type = "text/html"
+        else:
+            body = listing_page0
+            content_type = "text/html"
+
+        path = Path(
+            f"data/raw/{source_id}/{candidate_id or 'listing'}_{hash_content(url.encode())[:8]}.bin"
+        )
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(body)
+        record = FetchRecord(
+            id=candidate_id or hash_content(url.encode())[:12],
+            candidate_id=candidate_id or "listing",
+            source_id=source_id,
+            original_url=url,
+            final_url=url,
+            fetched_at=datetime.now(UTC),
+            status_code=200,
+            content_type=content_type,
+            body_hash=hash_content(body),
+            local_path=str(path),
+        )
+        return record, body
+
+    monkeypatch.setattr(HttpFetcher, "fetch", fake_fetch)
+
+    adapter = InvitaliaAdapter()
+    results = adapter.run_pipeline(limit=10)
+
+    assert len(results) == 1
+    assert results[0].title == "Voucher Filtrato"
+    assert results[0].publication_date == "2026-06-10"
     assert results[0].deadline == "2026-09-30"
 
 
@@ -247,3 +468,63 @@ def test_mimit_adapter_pipeline_from_paginated_fixture(monkeypatch) -> None:
     assert results[0].title == "Fondo straordinario editoria 2025"
     assert results[0].publication_date == "2026-06-03"
     assert results[0].deadline == "2026-09-30"
+
+
+def test_mimit_adapter_pipeline_filters_mixed_non_detail_urls(monkeypatch) -> None:
+    listing_page0 = b"""<!DOCTYPE html>
+<html><body>
+    <a href="/it/incentivi/faq">FAQ</a>
+    <a href="/it/incentivi/fondo-filtrato-2026">Fondo Filtrato 2026</a>
+</body></html>"""
+    listing_page1 = b"<html><body></body></html>"
+    detail_html = b"""<!DOCTYPE html>
+<html><body>
+    <h1>Fondo Filtrato 2026</h1>
+    <p>Pubblicazione: 05/06/2026</p>
+    <p>Scadenza: 31/10/2026</p>
+</body></html>"""
+
+    def fake_fetch(
+        self,
+        url: str,
+        source_id: str = "generic",
+        candidate_id: str | None = None,
+    ):
+        if "start=20" in url:
+            body = listing_page1
+            content_type = "text/html"
+        elif "/it/incentivi/" in url:
+            body = detail_html
+            content_type = "text/html"
+        else:
+            body = listing_page0
+            content_type = "text/html"
+
+        path = Path(
+            f"data/raw/{source_id}/{candidate_id or 'listing'}_{hash_content(url.encode())[:8]}.bin"
+        )
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(body)
+        record = FetchRecord(
+            id=candidate_id or hash_content(url.encode())[:12],
+            candidate_id=candidate_id or "listing",
+            source_id=source_id,
+            original_url=url,
+            final_url=url,
+            fetched_at=datetime.now(UTC),
+            status_code=200,
+            content_type=content_type,
+            body_hash=hash_content(body),
+            local_path=str(path),
+        )
+        return record, body
+
+    monkeypatch.setattr(HttpFetcher, "fetch", fake_fetch)
+
+    adapter = MimitAdapter()
+    results = adapter.run_pipeline(limit=10)
+
+    assert len(results) == 1
+    assert results[0].title == "Fondo Filtrato 2026"
+    assert results[0].publication_date == "2026-06-05"
+    assert results[0].deadline == "2026-10-31"

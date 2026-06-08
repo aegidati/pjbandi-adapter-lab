@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -13,7 +13,7 @@ from adapter_lab.utils.hashing import hash_content, short_id
 
 
 def _fake_fetch_with_solr_docs(
-    solr_docs: list[Mapping[str, object]],
+    solr_docs: Sequence[Mapping[str, object]],
     *,
     rows_in_config: str = "50",
 ):
@@ -140,8 +140,11 @@ def test_incentivi_gov_discover_static_fallback_when_solr_invalid(
 ]
 </script>
 </head><body>
-  <a href="/it/privacy">Privacy</a>
-  <a href="/it/catalogo/incentivo-fallback">Incentivo Fallback</a>
+    <a href="/it/privacy">Privacy</a>
+    <a href="/it/faq">FAQ</a>
+    <a href="/it/open-data">Open Data</a>
+    <a href="/it/incentivi">Incentivi</a>
+    <a href="/it/catalogo/incentivo-fallback">Incentivo Fallback</a>
 </body></html>"""
 
     def fake_fetch(
@@ -178,6 +181,49 @@ def test_incentivi_gov_discover_static_fallback_when_solr_invalid(
     assert len(candidates) == 1
     assert candidates[0].url.endswith("/it/catalogo/incentivo-fallback")
     assert candidates[0].metadata.get("discovery_mode") == "static_fallback"
+
+
+def test_incentivi_gov_discover_rejects_non_detail_mixed_solr_paths(monkeypatch) -> None:
+    docs: list[dict[str, object]] = [
+        {"id": "bad-1", "title": "FAQ", "url": "/it/faq/incentivi"},
+        {"id": "bad-2", "title": "Open data", "url": "/it/open-data/bandi"},
+        {"id": "bad-3", "title": "Sezione incentivi", "url": "/it/incentivi"},
+        {
+            "id": "ok-1",
+            "title": "Misura Green PMI",
+            "url": "/it/incentivi/misura-green-pmi",
+        },
+    ]
+    monkeypatch.setattr(HttpFetcher, "fetch", _fake_fetch_with_solr_docs(docs))
+
+    adapter = IncentiviGovAdapter()
+    candidates = adapter.discover()
+
+    assert len(candidates) == 1
+    assert candidates[0].url.endswith("/it/incentivi/misura-green-pmi")
+
+
+def test_incentivi_gov_discover_rejects_confronta_slug(monkeypatch) -> None:
+    docs: list[dict[str, object]] = [
+        {"id": "bad-1", "title": "Confronta", "url": "/it/confronta"},
+        {
+            "id": "bad-2",
+            "title": "Confronta Catalogo",
+            "url": "/it/catalogo/confronta",
+        },
+        {
+            "id": "ok-1",
+            "title": "Incentivo Sud",
+            "url": "/it/catalogo/incentivo-sud",
+        },
+    ]
+    monkeypatch.setattr(HttpFetcher, "fetch", _fake_fetch_with_solr_docs(docs))
+
+    adapter = IncentiviGovAdapter()
+    candidates = adapter.discover()
+
+    assert len(candidates) == 1
+    assert candidates[0].url.endswith("/it/catalogo/incentivo-sud")
 
 
 def test_incentivi_gov_fetch_adds_solr_json_asset(monkeypatch, tmp_path) -> None:
